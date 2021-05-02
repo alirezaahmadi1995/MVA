@@ -1,0 +1,49 @@
+
+#################################################################
+#==============R Codes for Multivariate Analysis================#
+#============Email: alireza.ahmadi@modares.ac.ir================#
+#################################################################
+#=================================
+#Preparation of data matrix
+#=================================
+#########First copy the data from the Excel file and then run the following commands
+my_data <- read.table(file = "clipboard", 
+                      sep = "\t", header=TRUE)
+bodyfat <- as.matrix(my_data)
+bodyfat<-data.matrix(bodyfat[,-c(1:3)])
+#=================================
+#Covariance and correlation matrices
+#=================================
+print(bodyfat_cov<-round(cov(bodyfat),3))
+print(bodyfat_corr<-round(cor(bodyfat),3))
+#=================================
+Bartlett's sphericity test
+#=================================
+library("psych")
+cortest.bartlett(bodyfat_corr,n=252)
+#=================================
+ Principal components analysis
+#=================================
+pca <- princomp(covmat = bodyfat_cov)
+summary(pca, loadings = TRUE)
+#######
+pca <- princomp(covmat = bodyfat_corr)
+summary(pca, loadings = TRUE)
+#=================================
+Estimating the number of PCs
+#=================================
+eigen(bodyfat_corr)$values
+#=================================
+Estimating the number of factors
+#=================================
+sapply(1:6, function(f)
+factanal(covmat = bodyfat_cov, factors = f,
+method = "mle", n.obs = 252)$PVAL)
+plot(eigen(bodyfat_corr)$values,type="l",
+     ylab="eigenvalues",
+     xlab="number of factors", main="scree diagram")
+#=================================
+Factor analysis
+#=================================
+ factanal(covmat = bodyfat_cov, factors = 8,
+             method = "mle", n.obs = 252,lower = 1e-09)
