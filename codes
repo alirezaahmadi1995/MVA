@@ -29,7 +29,7 @@ cortest.bartlett(bodyfat_corr,n=252)
 #=================================
 pca <- princomp(covmat = bodyfat_cov)
 summary(pca, loadings = TRUE)
-#######
+###############################
 pca <- princomp(covmat = bodyfat_corr)
 summary(pca, loadings = TRUE)
 #=================================
