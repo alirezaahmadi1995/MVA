@@ -4,15 +4,18 @@
 #============Email: alireza.ahmadi@modares.ac.ir================#
 #################################################################
 #=================================
-#Preparation of data matrix
+Preparation of data matrix
 #=================================
 #########First copy the data from the Excel file and then run the following commands
 my_data <- read.table(file = "clipboard", 
                       sep = "\t", header=TRUE)
 bodyfat <- as.matrix(my_data)
 bodyfat<-data.matrix(bodyfat[,-c(1:3)])
+#################################################################
+#==========================PCA section==========================#
+#################################################################
 #=================================
-#Covariance and correlation matrices
+Covariance and correlation matrices
 #=================================
 print(bodyfat_cov<-round(cov(bodyfat),3))
 print(bodyfat_corr<-round(cor(bodyfat),3))
@@ -33,6 +36,9 @@ summary(pca, loadings = TRUE)
 Estimating the number of PCs
 #=================================
 eigen(bodyfat_corr)$values
+#################################################################
+#==========================EFA section==========================#
+#################################################################
 #=================================
 Estimating the number of factors
 #=================================
@@ -47,3 +53,132 @@ Factor analysis
 #=================================
  factanal(covmat = bodyfat_cov, factors = 8,
              method = "mle", n.obs = 252,lower = 1e-09)
+#################################################################
+#===========================ICA section=========================#
+#################################################################
+#=================================
+Preprocess the data by applying PCA
+to the sample correlation matrix.
+#=================================
+pca <- princomp(bodyfat, cor = TRUE)
+summary(pca, loadings = TRUE)
+#=================================
+Recycling sources
+#=================================
+require(fastICA)
+npc<-sum(as.numeric(pca$sdev>1))
+pc.scores<-pca$scores[,1:npc]
+PCA.scores.unit<-apply(pc.scores,2,scale)
+###############################
+ICA<- fastICA(pc.scores, 2, alg.typ = "deflation", fun = "logcosh",
+             method = "R", row.norm = FALSE, maxit = 200, 
+             tol = 0.0001, verbose = TRUE)
+par(mfcol = c(2, 2))
+plot(1:252, pc.scores[,1 ], type = "l", main = "Pre-processed data", 
+     xlab = "", ylab = "",col="red")
+plot(1:252, pc.scores[,2 ], type = "l", xlab = "", ylab = "",col="red")
+plot(1:252, ICA$S[,1 ], type = "l", main = "ICA source estimates", 
+     xlab = "", ylab = "",col="blue")
+plot(1:252, ICA$S[, 2], type = "l", xlab = "", ylab = "",col="blue")      
+#################################################################
+#====================Cluster analysis section===================#
+#################################################################
+#=================================
+Preparation of data matrix
+#=================================
+my_data <- read.table(file = "clipboard", 
+                      sep = ,, header=TRUE)
+bodyfat <- as.data.frame(my_data)
+###############################
+bodyfat<-data.matrix(bodyfat[,-c(1:3)])
+bodyfat<-scale(bodyfat)
+#=================================
+Scatter plot
+#=================================
+PCA.meg=princomp(bodyfat, cor = T)
+PCA.scores<-PCA.meg$scores[,1:2]
+plot(PCA.scores[,1],PCA.scores[,2])
+text(PCA.scores[,1],PCA.scores[,2],labels=1:252)
+#=================================
+Deleting outlier data
+#=================================
+bodyfat<-as.matrix(bodyfat)
+bodyfat<-bodyfat[-c(31,39,41),]
+#=================================
+Agglomerative hierarchical clustering
+#=================================
+par(mfrow = c(3, 1))
+plot(hclust(dist(bodyfat),method="complete"),main="complete linkage")
+rect.hclust(hclust(dist(bodyfat),method="complete"),k=2, border = "green")
+rect.hclust(hclust(dist(bodyfat),method="complete"),k=3, border = "red")
+rect.hclust(hclust(dist(bodyfat),method="complete"),k=4, border = "blue")
+###############################
+plot(hclust(dist(bodyfat),method="average"), main="average linkage")
+rect.hclust(hclust(dist(bodyfat),method="average"),k=2, border = "green")
+rect.hclust(hclust(dist(bodyfat),method="average"),k=3, border = "red")
+rect.hclust(hclust(dist(bodyfat),method="average"),k=4, border = "blue")
+###############################
+plot(hclust(dist(bodyfat),method="single"),main="single linkage")
+rect.hclust(hclust(dist(bodyfat),method="single"),k=2, border = "green")
+rect.hclust(hclust(dist(bodyfat),method="single"),k=3, border = "red")
+rect.hclust(hclust(dist(bodyfat),method="single"),k=4, border = "blue")
+###############################
+complete<-cutree(hclust(dist(bodyfat),method="complete"),3)
+table(complete)
+average<-cutree(hclust(dist(bodyfat),method="average"),3)
+table(average)
+single<-cutree(hclust(dist(bodyfat),method="single"),3)
+table(single)
+###############################
+library(dendextend)
+dend<-as.dendrogram(hclust(dist(bodyfat),method="complete"))
+dend<-color_branches(dend,k=3,c("red","blue","green"))
+plot(dend)
+circlize_dendrogram(dend)
+#=================================
+K-means clustering
+#=================================
+library(adegenet)
+foo.WSS <- find.clusters(bodyfat, n.pca=2, choose=FALSE, stat="WSS")
+plot(foo.WSS$Kstat, type="o", xlab="Number of clusters", ylab="Whithin groups sum of square", col="red", main="Detection based on WSS")
+points(2, foo.WSS$Kstat[3], pch="x", cex=5)
+###############################
+results<-kmeans(bodyfat,3)
+results
+plot(bodyfat[,1],bodyfat[,2],col=results$cluster)
+
+library(mclust)
+library(factoextra)
+dens<-densityMclust(bodyfat)
+plot(dens, what="density")
+###############################
+mc<-Mclust(bodyfat)
+summary(mc)
+plot(mc, what="BIC")
+fviz_mclust_bic(mc)
+fviz_cluster(mc, data=bodyfat,palette=c("red","blue"),geom = "point",ellipse.type =  "convex")
+#=================================
+PAM clustering
+#=================================
+library(cluster)
+fviz_nbclust(bodyfat,pam,method = "silhouette")
+###############################
+mypam<-pam(bodyfat,2,metric = "euclidean",stand=F)
+fviz_cluster(mypam, data=bodyfat,palette=c("red","blue"),geom = "point",ellipse.type =  "convex")
+###############################
+sil<-silhouette(mypam$cluster,dist = dist(bodyfat))
+fviz_silhouette(sil)
+#=================================
+SOM map
+#=================================
+library(kohonen)
+g<-somgrid(xdim=4,ydim=4,topo="rectangular")
+map<-som(bodyfat,grid=g,alpha=c(0.05,0.01),radius=1)
+par(mfrow = c(2, 2))
+plot(map)
+plot(map,type="mapping",labels=1:252)
+plot(map,type="dist.neighbours")
+###############################
+
+
+             
