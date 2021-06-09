@@ -15,17 +15,17 @@ bodyfat<-data.matrix(bodyfat[,-c(1:3)])
 #==========================PCA section==========================#
 #################################################################
 #=================================
-Covariance and correlation matrices
+#Covariance and correlation matrices
 #=================================
 print(bodyfat_cov<-round(cov(bodyfat),3))
 print(bodyfat_corr<-round(cor(bodyfat),3))
 #=================================
-Bartlett's sphericity test
+#Bartlett's sphericity test
 #=================================
 library("psych")
 cortest.bartlett(bodyfat_corr,n=252)
 #=================================
- Principal components analysis
+#Principal components analysis
 #=================================
 pca <- princomp(covmat = bodyfat_cov)
 summary(pca, loadings = TRUE)
@@ -33,37 +33,37 @@ summary(pca, loadings = TRUE)
 pca <- princomp(covmat = bodyfat_corr)
 summary(pca, loadings = TRUE)
 #=================================
-Estimating the number of PCs
+#Estimating the number of PCs
 #=================================
 eigen(bodyfat_corr)$values
 #################################################################
 #==========================EFA section==========================#
 #################################################################
 #=================================
-Estimating the number of factors
+#Estimating the number of factors
 #=================================
 sapply(1:6, function(f)
 factanal(covmat = bodyfat_cov, factors = f,
 method = "mle", n.obs = 252)$PVAL)
 plot(eigen(bodyfat_corr)$values,type="l",
-     ylab="eigenvalues",
-     xlab="number of factors", main="scree diagram")
+ylab="eigenvalues",
+xlab="number of factors", main="scree diagram")
 #=================================
-Factor analysis
+#Factor analysis
 #=================================
- factanal(covmat = bodyfat_cov, factors = 8,
-             method = "mle", n.obs = 252,lower = 1e-09)
+factanal(covmat = bodyfat_cov, factors = 8,
+method = "mle", n.obs = 252,lower = 1e-09)
 #################################################################
 #===========================ICA section=========================#
 #################################################################
 #=================================
-Preprocess the data by applying PCA
-to the sample correlation matrix.
+#Preprocess the data by applying PCA
+#to the sample correlation matrix.
 #=================================
 pca <- princomp(bodyfat, cor = TRUE)
 summary(pca, loadings = TRUE)
 #=================================
-Recycling sources
+#Recycling sources
 #=================================
 require(fastICA)
 npc<-sum(as.numeric(pca$sdev>1))
@@ -71,41 +71,41 @@ pc.scores<-pca$scores[,1:npc]
 PCA.scores.unit<-apply(pc.scores,2,scale)
 ###############################
 ICA<- fastICA(pc.scores, 2, alg.typ = "deflation", fun = "logcosh",
-             method = "R", row.norm = FALSE, maxit = 200, 
-             tol = 0.0001, verbose = TRUE)
+method = "R", row.norm = FALSE, maxit = 200, 
+tol = 0.0001, verbose = TRUE)
 par(mfcol = c(2, 2))
 plot(1:252, pc.scores[,1 ], type = "l", main = "Pre-processed data", 
-     xlab = "", ylab = "",col="red")
+xlab = "", ylab = "",col="red")
 plot(1:252, pc.scores[,2 ], type = "l", xlab = "", ylab = "",col="red")
 plot(1:252, ICA$S[,1 ], type = "l", main = "ICA source estimates", 
-     xlab = "", ylab = "",col="blue")
+xlab = "", ylab = "",col="blue")
 plot(1:252, ICA$S[, 2], type = "l", xlab = "", ylab = "",col="blue")      
 #################################################################
 #====================Cluster analysis section===================#
 #################################################################
 #=================================
-Preparation of data matrix
+#Preparation of data matrix
 #=================================
 my_data <- read.table(file = "clipboard", 
-                      sep = ,, header=TRUE)
+sep = ,, header=TRUE)
 bodyfat <- as.data.frame(my_data)
 ###############################
 bodyfat<-data.matrix(bodyfat[,-c(1:3)])
 bodyfat<-scale(bodyfat)
 #=================================
-Scatter plot
+#Scatter plot
 #=================================
 PCA.meg=princomp(bodyfat, cor = T)
 PCA.scores<-PCA.meg$scores[,1:2]
 plot(PCA.scores[,1],PCA.scores[,2])
 text(PCA.scores[,1],PCA.scores[,2],labels=1:252)
 #=================================
-Deleting outlier data
+#Deleting outlier data
 #=================================
 bodyfat<-as.matrix(bodyfat)
 bodyfat<-bodyfat[-c(31,39,41),]
 #=================================
-Agglomerative hierarchical clustering
+#Agglomerative hierarchical clustering
 #=================================
 par(mfrow = c(3, 1))
 plot(hclust(dist(bodyfat),method="complete"),main="complete linkage")
@@ -136,7 +136,7 @@ dend<-color_branches(dend,k=3,c("red","blue","green"))
 plot(dend)
 circlize_dendrogram(dend)
 #=================================
-K-means clustering
+#K-means clustering
 #=================================
 library(adegenet)
 foo.WSS <- find.clusters(bodyfat, n.pca=2, choose=FALSE, stat="WSS")
@@ -146,7 +146,9 @@ points(2, foo.WSS$Kstat[3], pch="x", cex=5)
 results<-kmeans(bodyfat,3)
 results
 plot(bodyfat[,1],bodyfat[,2],col=results$cluster)
-
+#=================================
+#Model-based clustering
+#=================================
 library(mclust)
 library(factoextra)
 dens<-densityMclust(bodyfat)
@@ -158,7 +160,7 @@ plot(mc, what="BIC")
 fviz_mclust_bic(mc)
 fviz_cluster(mc, data=bodyfat,palette=c("red","blue"),geom = "point",ellipse.type =  "convex")
 #=================================
-PAM clustering
+#PAM clustering
 #=================================
 library(cluster)
 fviz_nbclust(bodyfat,pam,method = "silhouette")
@@ -169,16 +171,15 @@ fviz_cluster(mypam, data=bodyfat,palette=c("red","blue"),geom = "point",ellipse.
 sil<-silhouette(mypam$cluster,dist = dist(bodyfat))
 fviz_silhouette(sil)
 #=================================
-SOM map
+#SOM map
 #=================================
 library(kohonen)
 g<-somgrid(xdim=4,ydim=4,topo="rectangular")
 map<-som(bodyfat,grid=g,alpha=c(0.05,0.01),radius=1)
-par(mfrow = c(2, 2))
 plot(map)
 plot(map,type="mapping",labels=1:252)
 plot(map,type="dist.neighbours")
 ###############################
 
 
-             
+
