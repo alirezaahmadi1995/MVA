@@ -54,6 +54,33 @@ xlab="number of factors", main="scree diagram")
 factanal(covmat = bodyfat_cov, factors = 8,
 method = "mle", n.obs = 252,lower = 1e-09)
 #################################################################
+#================Multidimensional scaling section===============#
+#################################################################
+#=================================
+#classical multidimensional scaling
+#=================================
+my_data <- read_excel(file.choose())
+bodyfat<-data.matrix(my_data[,-c(1:3)])
+head(bodyfat)
+dis<-dist(bodyfat, method="euclidean")
+fit<-cmdscale(dis,k = 2, eig = TRUE)
+#=================================
+#checking adequacy of fitting
+#=================================
+fit_eigen <- fit$eig
+P_criterion<-cumsum(abs(fit_eigen[1])) / sum(abs(fit_eigen))+
+  cumsum(abs(fit_eigen[2])) / sum(abs(fit_eigen))
+P_criterion
+mean(abs(dist(bodyfat)))
+mean(dist(cmdscale(dis,k = 2)))
+mean(abs(dist(bodyfat) - dist(cmdscale(dis,k = 2))))
+#=================================
+#plotting the two-dimensional
+#scaling solution
+#=================================
+plot(fit$points,xlab="Coordinate 1",ylab="Coordinate 2",col = "dark red")
+text(fit$points, lables=bodyfat[,1],pos=3,cex=1,col = "dark blue")
+#################################################################
 #===========================ICA section=========================#
 #################################################################
 #=================================
@@ -179,7 +206,74 @@ map<-som(bodyfat,grid=g,alpha=c(0.05,0.01),radius=1)
 plot(map)
 plot(map,type="mapping",labels=1:252)
 plot(map,type="dist.neighbours")
-###############################
-
-
-
+#################################################################
+#================ Discrimination Analysis section===============#
+#################################################################
+#=================================
+#creating classes based on PCA
+#=================================
+library("readxl")
+my_data <- read_excel(file.choose())
+bodyfat<-data.matrix(my_data[,-c(1:3)])
+pca <- princomp(bodyfat, cor = TRUE)
+pc.scores<-pca$scores[,1]
+class<-ifelse(pc.scores >= 0, 1, 2)
+BODY<-cbind(class,bodyfat)
+summary(BODY)
+BODY<-as.data.frame(BODY)
+#=================================
+#Linear discriminant analysis
+#=================================
+library(MASS)
+Out1=matrix(0,nrow(BODY),1 )
+for ( i in 1 :nrow(BODY)){
+  linear<- lda(class~.,data=BODY[-i,])
+  pred=predict(linear,BODY[i,])
+  Out1[i,]<-pred$class
+}
+linear$prior
+linear$scaling
+tab1 <- table( Out1 , Actual = BODY$class)
+tab1
+missclassifiation<-round(1-sum(diag(tab1))/sum(tab1),3)
+missclassifiation
+#=================================
+#Multiple regression
+#discriminant analysis
+#=================================
+class<-as.factor(BODY[,1])
+class<-unclass(class) 
+lda.reg<-lm(class~.,data=BODY)    
+STEP<-step(lda.reg, direction = "backward", trace=FALSE ) 
+summary(STEP)
+head(BODY)
+#=================================
+#Logistic regression
+#discriminant analysis
+#=================================
+BODY$class<-as.factor(BODY[,1])
+N=nrow(BODY)
+rvec <- runif(N)
+BODYTR <- BODY[rvec < 0.75,]
+BODYTS <- BODY[rvec >= 0.75,]
+BODYLOG<- glm(class~., data =BODYTR, family = binomial(link="logit"))
+summary(BODYLOG)$coefficients
+pred=predict(BODYLOG,BODYTS,type="response")
+Z<-ifelse(pred<0.46,1,2)
+tab2 <- table(Z , Actual = BODYTS$class)
+tab2
+missclassifiation<-round(1-sum(diag(tab2))/sum(tab2),3)
+missclassifiation
+#=================================
+#Quadratic discriminant analysis
+#=================================
+Out1=matrix(0,nrow(BODY),1 )
+for ( i in 1 :nrow(BODY)){
+  quad <- qda(class~.,data=BODY[-i,])
+  pred=predict(quad,BODY[i,])
+  Out1[i,]<-pred$class
+}
+tab1 <- table( Out1 , Actual = BODY$class)
+tab1
+missclassifiation<-round(1-sum(diag(tab1))/sum(tab1),3)
+missclassifiation
